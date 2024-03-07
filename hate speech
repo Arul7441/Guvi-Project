@@ -1,0 +1,97 @@
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv('C:\Users\Dell\Desktop\New folder\Annotations_Metadata.csv'
+'C:\Users\Dell\Desktop\New folder\Text file')
+pip install matplotlib
+# Check the first few rows of the dataset
+print(df.head())
+
+# Check the data types of columns
+print(df.dtypes)
+
+# Check for missing values
+print(df.isnull().sum())
+
+# Visualize data distributions (example using matplotlib)
+import matplotlib.pyplot as plt
+plt.hist(df['label'])
+plt.xlabel('Label')
+plt.ylabel('Frequency')
+plt.title('Distribution of Labels')
+plt.show()
+import nltk
+nltk.download('stopwords')
+import re
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+
+# Clean the text data
+def clean_text(text):
+    text = re.sub(r'[^A-Za-z]', ' ', text)  # Remove non-alphabetic characters
+    text = text.lower()  # Convert text to lowercase
+    return text
+
+df['cleaned_text'] = df['file_id'].apply(clean_text)
+
+# Tokenization
+df['tokens'] = df['cleaned_text'].apply(word_tokenize)
+
+# Stopword Removal
+stop_words = set(stopwords.words('english'))
+df['tokens'] = df['tokens'].apply(lambda x: [word for word in x if word not in stop_words])
+
+# Stemming
+stemmer = PorterStemmer()
+df['stemmed_tokens'] = df['tokens'].apply(lambda x: [stemmer.stem(word) for word in x])
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Count word frequencies
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(df['cleaned_text'])
+# Convert date/time columns to datetime objects
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+# Visualize trends over time (example using line plot)
+plt.plot(df['timestamp'], df['label'])
+plt.xlabel('Timestamp')
+plt.ylabel('Label')
+plt.title('Hate Speech Trends Over Time')
+plt.show()
+# Group data by user_id
+user_groups = df.groupby('user_id')
+
+# Analyze user behavior
+user_stats = user_groups['label'].value_counts()
+# Assuming you have location data available in the dataset
+# Create geospatial visualizations using libraries like geopandas or folium
+# For example, you can create a folium map:
+import folium
+
+# Create a map centered at a specific location
+m = folium.Map(location=[latitude, longitude], zoom_start=10)
+
+# Add markers for hate speech occurrences
+for _, row in df.iterrows():
+    folium.Marker([row['latitude'], row['longitude']], popup=row['file_id']).add_to(m)
+
+# Save the map as an HTML file
+m.save('geospatial_analysis.html')
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, df['label'], test_size=0.2, random_state=42)
+
+# Train logistic regression model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Predict on test set
+y_pred = model.predict(X_test)
+
+# Evaluate model performance
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
